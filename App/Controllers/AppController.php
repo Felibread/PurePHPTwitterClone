@@ -19,11 +19,9 @@ class AppController extends Action
 
         $tweets = $tweet->getAll();
 
-        // echo '<pre>';
-        // print_r($tweets);
-        // echo '</pre>';
-
         $this->view->tweets = $tweets;
+
+        $this->getUserData($_SESSION['id']);
 
         $this->render('timeline');
     }
@@ -49,5 +47,73 @@ class AppController extends Action
         if (!isset($_SESSION['id']) || $_SESSION['id'] == '' || !isset($_SESSION['nome']) || $_SESSION['nome'] == '') {
             header('Location: /?login=erro');
         }
+    }
+
+    public function quemSeguir()
+    {
+        $this->validaAutenticacao();
+
+        $pesquisarPor = isset($_GET['pesquisarPor']) ? $_GET['pesquisarPor'] : '';
+
+        $usuarios = array();
+
+        if ($pesquisarPor != '') {
+
+            $usuario = Container::getModel('Usuario');
+            $usuario->__set('nome', $pesquisarPor);
+            $usuario->__set('id', $_SESSION['id']);
+            $usuarios = $usuario->getAll();
+        }
+
+        $this->view->usuarios = $usuarios;
+
+        $this->getUserData($_SESSION['id']);
+
+        $this->render('quemSeguir');
+    }
+
+    public function acao()
+    {
+
+        $this->validaAutenticacao();
+
+        $acao = isset($_GET['acao']) ? $_GET['acao'] : '';
+        $id_usuario_seguindo = isset($_GET['id_usuario']) ? $_GET['id_usuario'] : '';
+
+        $usuario = Container::getModel('Usuario');
+        $usuario->__set('id', $_SESSION['id']);
+
+        if ($acao == 'seguir') {
+            $usuario->seguirUsuario($id_usuario_seguindo);
+        } else if ($acao = 'deixar_de_seguir') {
+            $usuario->deixarSeguirUsuario($id_usuario_seguindo);
+        }
+
+        header('Location: /quem_seguir');
+    }
+
+    public function removerTweet()
+    {
+
+        $this->validaAutenticacao();
+
+        $tweet_id = isset($_GET['tweet_id']) ? $_GET['tweet_id'] : '';
+
+        $tweet = Container::getModel('Tweet');
+        $tweet->__set('id', $tweet_id);
+        $tweet->removerTweet();
+
+        header('Location: /timeline');
+    }
+
+    public function getUserData($user_id)
+    {
+        $usuario = Container::getModel('Usuario');
+        $usuario->__set('id', $user_id);
+
+        $this->view->info_usuario = $usuario->getInfoUsuario();
+        $this->view->total_tweets = $usuario->getTotalTweets();
+        $this->view->total_seguindo = $usuario->getTotalSeguindo();
+        $this->view->total_seguidores = $usuario->getTotalSeguidores();
     }
 }
